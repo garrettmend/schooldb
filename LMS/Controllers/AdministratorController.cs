@@ -40,8 +40,18 @@ namespace LMS.Controllers
     /// <returns>The JSON result</returns>
     public IActionResult GetCourses(string subject)
     {
-      
-      return Json(null);
+            using (db)
+            {
+                var query = from i in db.Courses
+                            where i.Department == subject
+                            select new
+                            {
+                                number = i.Number,
+                                name = i.Name
+                            };
+                
+                return Json(query.ToArray());
+            }
     }
 
 
@@ -59,8 +69,21 @@ namespace LMS.Controllers
     /// <returns>The JSON result</returns>
     public IActionResult GetProfessors(string subject)
     {
-   
-      return Json(null);
+            using (db)
+            {
+                var query = from i in db.Professors
+                            join c in db.Departments on i.WorksIn equals c.Subject into a
+                            from x in a.DefaultIfEmpty()
+                            where x.Subject == subject
+                            select new
+                            {
+                                lname = i.LName,
+                                fname=i.FName,
+                                uid=i.UId
+                            };
+                            
+                return Json(query.ToArray());
+            }
     }
 
 
