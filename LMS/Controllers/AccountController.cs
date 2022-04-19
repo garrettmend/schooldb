@@ -489,13 +489,11 @@ namespace LMS.Controllers
             using(db)
             {
                 // Get Admins highest uID
-                var query = from i in db.Administrators orderby i.UId descending select new { i.UId };
-                string uid = query.First().UId;
+                string uid = db.Administrators.OrderByDescending(a => a.UId).First().UId;
                 string num = uid.Substring(1);
                 max = Int32.Parse(num);
                 // Get Professors highest uID
-                query = from i in db.Professors orderby i.UId descending select new { i.UId };
-                uid = query.First().UId;
+                uid = db.Professors.OrderByDescending(a => a.UId).First().UId;
                 num = uid.Substring(1);
                 int val = Int32.Parse(num);
                 if (max < val)
@@ -503,8 +501,7 @@ namespace LMS.Controllers
                     max = val;
                 }
                 // Get Students highest uID
-                query = from i in db.Students orderby i.UId descending select new { i.UId };
-                uid = query.First().UId;
+                uid = db.Students.OrderByDescending(a => a.UId).First().UId;
                 num = uid.Substring(1);
                 val = Int32.Parse(num);
                 if (max < val)

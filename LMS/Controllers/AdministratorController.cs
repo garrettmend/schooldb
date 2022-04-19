@@ -100,9 +100,9 @@ namespace LMS.Controllers
         /// false if the Course already exists.</returns>
         public IActionResult CreateCourse(string subject, int number, string name)
         {
-            using(db)
+            using (db)
             {
-                if(db.Courses.Where(c => c.Department == subject && c.Number == number).Any())
+                if (db.Courses.Where(c => c.Department == subject && c.Number == number).Any())
                 {
                     return Json(new { success = false });
                 }
@@ -114,7 +114,7 @@ namespace LMS.Controllers
                     {
                         CatalogId = catalogNum,
                         Department = subject,
-                        Number = (uint) number,
+                        Number = (uint)number,
                         Name = name
                     };
                     db.Courses.Add(course);
@@ -143,8 +143,37 @@ namespace LMS.Controllers
         /// a Class offering of the same Course in the same Semester.</returns>
         public IActionResult CreateClass(string subject, int number, string season, int year, DateTime start, DateTime end, string location, string instructor)
         {
-
-            return Json(new { success = false });
+            using (db)
+            {
+                if (db.Classes.Where(c => c.Listing == number && c.Season == season).Any())
+                {
+                    return Json(new { success = false });
+                }
+                else
+                {
+                    if (db.Classes.Where(c => c.Location == location && (c.StartTime <= end.TimeOfDay) && (c.EndTime >= start.TimeOfDay)).Any())
+                    {
+                        return Json(new { success = false });
+                    }
+                    else // Insert new Class
+                    {
+                        uint catalogID = db.Courses.Where(course => course.Department == subject && course.Number == number).First().CatalogId;
+                        Classes c = new Classes
+                        {
+                            Listing = catalogID,
+                            Season = season,
+                            Year = (uint) year,
+                            StartTime = start.TimeOfDay,
+                            EndTime = end.TimeOfDay,
+                            Location = location,
+                            TaughtBy = instructor
+                        };
+                        db.Classes.Add(c);
+                        db.SaveChanges();
+                        return Json(new { success = true });
+                    }
+                }
+            }
         }
 
 
