@@ -60,7 +60,6 @@ namespace LMS.Controllers
         }
 
 
-
         /// <summary>
         /// Returns a JSON array representing the course catalog.
         /// Each object in the array should have the following fields:
@@ -185,8 +184,51 @@ namespace LMS.Controllers
         /// </returns>
         public IActionResult GetUser(string uid)
         {
-
-            return Json(new { success = false });
+            using (db)
+            {
+                if(db.Students.Where(s => s.UId == uid).Any())
+                {
+                    var query = from i in db.Students
+                                where i.UId == uid
+                                select new
+                                {
+                                    fname = i.FName,
+                                    lname = i.LName,
+                                    uid = i.UId,
+                                    department = i.Major
+                                };
+                    return Json(query.ToArray());
+                }
+                if(db.Professors.Where(p => p.UId == uid).Any())
+                {
+                    var query = from i in db.Professors
+                                where i.UId == uid
+                                select new
+                                {
+                                    fname = i.FName,
+                                    lname = i.LName,
+                                    uid = i.UId,
+                                    department = i.WorksIn
+                                };
+                    return Json(query.ToArray());
+                }
+                if(db.Administrators.Where(a => a.UId == uid).Any())
+                {
+                    var query = from i in db.Administrators
+                                where i.UId == uid
+                                select new
+                                {
+                                    fname = i.FName,
+                                    lname = i.LName,
+                                    uid = i.UId,
+                                };
+                    return Json(query.ToArray());
+                }
+                else
+                {
+                    return Json(new { success = false });
+                }
+            }
         }
 
 
