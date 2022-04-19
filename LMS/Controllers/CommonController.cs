@@ -54,7 +54,7 @@ namespace LMS.Controllers
         {
             using(db)
             {
-                var query = from i in db.Departments select new { i.Name, i.Subject };
+                var query = from i in db.Departments select new { name= i.Name, subject= i.Subject };
                 return Json(query.ToArray());
             }
         }
@@ -82,7 +82,8 @@ namespace LMS.Controllers
                             {
                                 subject = i.Department,
                                 dname = c.Name,
-                                courses = 
+                                courses = from t in i.Number
+                                          select 
                             };*/
 
                 return Json(null);
@@ -105,8 +106,25 @@ namespace LMS.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetClassOfferings(string subject, int number)
         {
+            using (db)
+            {
+                var query = from i in db.Classes
+                            join p in db.Professors on i.TaughtBy equals p.UId
+                            join c in db.Courses on i.Listing equals c.CatalogId
+                            where c.Department == subject && c.Number == number
+                            select new
+                            {
+                                season = i.Season,
+                                year = i.Year,
+                                location = i.Location,
+                                start = i.StartTime,
+                                end = i.EndTime,
+                                fname = p.FName,
+                                lname = p.LName
+                            };
 
-            return Json(null);
+                return Json(query.ToArray());
+            }
         }
 
         /// <summary>
