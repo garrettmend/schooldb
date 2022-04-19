@@ -72,9 +72,8 @@ namespace LMS.Controllers
             using (db)
             {
                 var query = from i in db.Professors
-                            join c in db.Departments on i.WorksIn equals c.Subject into a
-                            from x in a.DefaultIfEmpty()
-                            where x.Subject == subject
+                            join c in db.Departments on i.WorksIn equals c.Subject
+                            where i.WorksIn == subject 
                             select new
                             {
                                 lname = i.LName,
