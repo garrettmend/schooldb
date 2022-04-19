@@ -145,7 +145,7 @@ namespace LMS.Controllers
         {
             using (db)
             {
-                if (db.Classes.Where(c => c.Listing == number && c.Season == season).Any())
+                if (db.Classes.Where(c => c.ListingNavigation.Number == number && c.Season == season && c.Year == year).Any())
                 {
                     return Json(new { success = false });
                 }
