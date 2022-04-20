@@ -60,7 +60,6 @@ namespace LMS.Controllers
         }
 
 
-
         /// <summary>
         /// Returns a JSON array representing the course catalog.
         /// Each object in the array should have the following fields:
@@ -76,17 +75,19 @@ namespace LMS.Controllers
         {
             using (db)
             {
-                /*var query = from i in db.Courses
-                            join c in db.Departments on i.Department equals c.Subject
+                var query = from i in db.Departments
                             select new
                             {
-                                subject = i.Department,
-                                dname = c.Name,
-                                courses = from t in i.Number
-                                          select 
-                            };*/
-
-                return Json(null);
+                                subject = i.Subject,
+                                dname = i.Name,
+                                courses = from j in i.Courses 
+                                select new
+                                {
+                                    number = j.Number,
+                                    cname = j.Name
+                                }
+                            };
+                return Json(query.ToArray());
             }
         }
 
@@ -141,8 +142,14 @@ namespace LMS.Controllers
         /// <returns>The assignment contents</returns>
         public IActionResult GetAssignmentContents(string subject, int num, string season, int year, string category, string asgname)
         {
-
-            return Content("");
+            using (db)
+            {
+                var classes = db.Courses.Where(c => c.Department == subject && c.Number == num).First().Classes;
+                var assignmentCategories = classes.Where(c => c.Season == season && c.Year == year).First().AssignmentCategories;
+                var assignments = assignmentCategories.Where(a => a.Name == category).First().Assignments;
+                var assignment = assignments.Where(a => a.Name == asgname).First();
+                return Content(assignment.Contents);
+            }               
         }
 
 
@@ -162,8 +169,15 @@ namespace LMS.Controllers
         /// <returns>The submission text</returns>
         public IActionResult GetSubmissionText(string subject, int num, string season, int year, string category, string asgname, string uid)
         {
-
-            return Content("");
+            using (db)
+            {
+                var classes = db.Courses.Where(c => c.Department == subject && c.Number == num).First().Classes;
+                var assignmentCategories = classes.Where(c => c.Season == season && c.Year == year).First().AssignmentCategories;
+                var assignments = assignmentCategories.Where(a => a.Name == category).First().Assignments;
+                var submissions = assignments.Where(a => a.Name == asgname).First().Submissions;
+                var submission = submissions.Where(s => s.Student == uid).First();
+                return Content(submission.SubmissionContents);
+            }
         }
 
 
@@ -185,8 +199,51 @@ namespace LMS.Controllers
         /// </returns>
         public IActionResult GetUser(string uid)
         {
-
-            return Json(new { success = false });
+            using (db)
+            {
+                if(db.Students.Where(s => s.UId == uid).Any())
+                {
+                    var query = from i in db.Students
+                                where i.UId == uid
+                                select new
+                                {
+                                    fname = i.FName,
+                                    lname = i.LName,
+                                    uid = i.UId,
+                                    department = i.Major
+                                };
+                    return Json(query.ToArray());
+                }
+                if(db.Professors.Where(p => p.UId == uid).Any())
+                {
+                    var query = from i in db.Professors
+                                where i.UId == uid
+                                select new
+                                {
+                                    fname = i.FName,
+                                    lname = i.LName,
+                                    uid = i.UId,
+                                    department = i.WorksIn
+                                };
+                    return Json(query.ToArray());
+                }
+                if(db.Administrators.Where(a => a.UId == uid).Any())
+                {
+                    var query = from i in db.Administrators
+                                where i.UId == uid
+                                select new
+                                {
+                                    fname = i.FName,
+                                    lname = i.LName,
+                                    uid = i.UId,
+                                };
+                    return Json(query.ToArray());
+                }
+                else
+                {
+                    return Json(new { success = false });
+                }
+            }
         }
 
 
