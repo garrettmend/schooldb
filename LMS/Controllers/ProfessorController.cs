@@ -155,7 +155,6 @@ namespace LMS.Controllers
                     var query = from i in db.Submissions
                                 join a in db.Assignments on i.Assignment equals a.AssignmentId
                                 join ac in db.AssignmentCategories on a.Category equals ac.CategoryId
-                              //  where ac.Name == category
                                 join c in db.Classes on ac.InClass equals c.ClassId
                               //  where c.Season == season && c.Year == year
                                 join co in db.Courses on c.Listing equals co.CatalogId
@@ -179,11 +178,12 @@ namespace LMS.Controllers
                     var query = from i in db.Submissions
                                 join a in db.Assignments on i.Assignment equals a.AssignmentId
                                 join ac in db.AssignmentCategories on a.Category equals ac.CategoryId
-                               // where ac.Name == category
+                                // where ac.Name.Any()
                                 join c in db.Classes on ac.InClass equals c.ClassId
                                // where c.Season == season && c.Year == year
                                 join co in db.Courses on c.Listing equals co.CatalogId
                                 where co.Number == num && co.Department == subject && c.Season == season && c.Year == year
+                                && ac.Name.Any()
                                 select new
                                 {
                                     aname = a.Name,
@@ -388,12 +388,12 @@ namespace LMS.Controllers
                                  where co.Department == subject && co.Number == num && c.Season == season && c.Year == year && ac.Name == category
                                  && a.Name == asgname && i.Student == uid
                                  select i;
-               
-                    foreach(Submissions s in submission)//sets score of submission
-                    {
-                        s.Score=(uint)score;
 
-                    }
+                Submissions s = submission.SingleOrDefault();//set score
+                if (s != null)
+                {
+                    s.Score = (uint)score;
+                }
                 
                 try
                 {
