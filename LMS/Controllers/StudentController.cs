@@ -84,6 +84,7 @@ namespace LMS.Controllers
                                 year = c.Year,
                                 grade = e.Grade
                             };
+
                 return Json(query.ToArray());
             }               
         }
@@ -104,7 +105,21 @@ namespace LMS.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetAssignmentsInClass(string subject, int num, string season, int year, string uid)
         {
-
+            using (db)
+            {
+                // course -> class -> enrolled -> assignment Categories -> assignment -> submissions
+                var query = from i in db.Courses
+                            join c in db.Classes on i.CatalogId equals c.Listing
+                            join e in db.Enrolled on c.ClassId equals e.Class
+                            join ac in db.AssignmentCategories on e.Class equals ac.InClass
+                            join a in db.Assignments on ac.CategoryId equals a.Category
+                            where e.Student == uid && i.Department == subject && i.Number == num && c.Season == season && c.Year == year
+                            select new
+                            {
+                                aname = a.Name,
+                                 
+                            };
+            }
             return Json(null);
         }
 
