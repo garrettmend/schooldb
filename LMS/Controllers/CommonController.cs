@@ -184,9 +184,9 @@ namespace LMS.Controllers
                 var assignmentCategories = classes.Where(c => c.Season == season && c.Year == year).First().AssignmentCategories;
                 var assignments = assignmentCategories.Where(a => a.Name == category).First().Assignments;
                 var submissions = assignments.Where(a => a.Name == asgname).First().Submissions;
-                if (submissions.Any())
+                var submission = submissions.Where(s => s.Student == uid).FirstOrDefault();
+                if (submission != null)
                 {
-                    var submission = submissions.Where(s => s.Student == uid).First();
                     return Content(submission.SubmissionContents);
                 }
                 else
