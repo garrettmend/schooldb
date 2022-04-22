@@ -145,7 +145,7 @@ namespace LMS.Controllers
             using (db)
             {
                 var classes = db.Courses.Where(c => c.Department == subject && c.Number == num).First().Classes;
-                var assignmentCategories = classes.Where(c => c.Season == season && c.Year == year).First().AssignmentCategories;
+                var assignmentCategories = classes.Where(c => c.Season == season && c.Year == year).First().AssignmentCategories;//sequence contains no
                 var assignments = assignmentCategories.Where(a => a.Name == category).First().Assignments;
                 var assignment = assignments.Where(a => a.Name == asgname).First();
                 return Content(assignment.Contents);
