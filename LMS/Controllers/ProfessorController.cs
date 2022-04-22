@@ -147,12 +147,12 @@ namespace LMS.Controllers
     /// <param name="category">The name of the assignment category in the class, 
     /// or null to return assignments from all categories</param>
     /// <returns>The JSON array</returns>
-    public IActionResult GetAssignmentsInCategory(string subject, int num, string season, int year, string category)
+    public IActionResult GetAssignmentsInCategory(string subject, int num, string season, int year, string category) 
     {
             if (category != null)
             {
                 using (db) {
-                    var query = from i in db.Submissions
+                    var query = from i in db.Submissions // Can't start from submissions, there could be no submission for assignment. Go course -> ... -> submissions
                                 join a in db.Assignments on i.Assignment equals a.AssignmentId
                                 join ac in db.AssignmentCategories on a.Category equals ac.CategoryId
                                 join c in db.Classes on ac.InClass equals c.ClassId

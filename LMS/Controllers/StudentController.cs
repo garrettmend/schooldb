@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using LMS.Models.LMSModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace LMS.Controllers
 {
@@ -107,20 +108,12 @@ namespace LMS.Controllers
         {
             using (db)
             {
-                // course -> class -> enrolled -> assignment Categories -> assignment -> submissions
-                var query = from i in db.Courses
-                            join c in db.Classes on i.CatalogId equals c.Listing
-                            join e in db.Enrolled on c.ClassId equals e.Class
-                            join ac in db.AssignmentCategories on e.Class equals ac.InClass
-                            join a in db.Assignments on ac.CategoryId equals a.Category
-                            where e.Student == uid && i.Department == subject && i.Number == num && c.Season == season && c.Year == year
-                            select new
-                            {
-                                aname = a.Name,
-                                 
-                            };
+                // course -> class -> assignment Categories -> assignment -> submissions
+                Courses course = db.Courses.Where(c => c.Department == subject && c.Number == num).Include(c => c.Classes).ThenInclude(c => c.AssignmentCategories).First();
+                Classes clss = course.Classes.Where(c => c.Season == season && c.Year == year).First();
+                var acs = clss.AssignmentCategories;
+                return Json(null);
             }
-            return Json(null);
         }
 
 
@@ -146,8 +139,41 @@ namespace LMS.Controllers
         public IActionResult SubmitAssignmentText(string subject, int num, string season, int year,
           string category, string asgname, string uid, string contents)
         {
-
-            return Json(new { success = false });
+            using (db)
+            {
+                try
+                {
+                    var course = db.Courses.Where(c => c.Department == subject && c.Number == num).First();
+                    var clss = course.Classes.Where(c => c.Season == season && c.Year == year).First();
+                    var acategory = clss.AssignmentCategories.Where(a => a.Name == category).First();
+                    Assignments assignment = acategory.Assignments.Where(a => a.Name == asgname).First();
+                    Submissions submission = assignment.Submissions.Where(s => s.Student == uid).FirstOrDefault();
+                    // Check if they have already submitted
+                    if (submission != null)
+                    {
+                        submission.SubmissionContents = contents;
+                        submission.Time = DateTime.Now;
+                    }
+                    else // No submission yet
+                    {
+                        Submissions newSubmit = new Submissions
+                        {
+                            Assignment = assignment.AssignmentId,
+                            Student = uid,
+                            Score = 0,
+                            SubmissionContents = contents,
+                            Time = DateTime.Now
+                        };
+                        db.Submissions.Add(newSubmit);
+                    }
+                    db.SaveChanges();
+                    return Json(new { success = true });
+                }
+                catch (Exception e)
+                {
+                    return Json(new { success = false });
+                }               
+            }
         }
 
 
@@ -163,8 +189,29 @@ namespace LMS.Controllers
         /// false if the student is already enrolled in the Class.</returns>
         public IActionResult Enroll(string subject, int num, string season, int year, string uid)
         {
-
-            return Json(new { success = false });
+            using(db)
+            {
+                Courses course = db.Courses.Where(c => c.Department == subject && c.Number == num).Include(c => c.Classes).ThenInclude(c => c.Enrolled).First();
+                Classes clss = course.Classes.Where(c => c.Season == season && c.Year == year).First();
+                var enrollments = clss.Enrolled;
+                // Student already enrolled
+                if (enrollments.Where(e => e.Student == uid).Any())
+                {
+                    return Json(new { success = false });
+                }
+                else
+                {
+                    Enrolled newEnroll = new Enrolled
+                    {
+                        Class = clss.ClassId,
+                        Student = uid,
+                        Grade = "--"
+                    };
+                    db.Enrolled.Add(newEnroll);
+                    db.SaveChanges();
+                    return Json(new { success = true });
+                }
+            }
         }
 
 
@@ -182,8 +229,63 @@ namespace LMS.Controllers
         /// <returns>A JSON object containing a single field called "gpa" with the number value</returns>
         public IActionResult GetGPA(string uid)
         {
-
-            return Json(null);
+            double gradePoints = 0.0;
+            int count = 0;
+            int creditHour = 4;
+            using (db)
+            {
+                var enrollments = db.Enrolled.Where(e => e.Student == uid);                
+                foreach (Enrolled e in enrollments)
+                {
+                    string grade = e.Grade;
+                    if (!grade.Equals("--"))
+                    {
+                        count++;
+                        switch(grade)
+                        {
+                            case "A":
+                                gradePoints += (4.0*creditHour);
+                                break;
+                            case "A-":
+                                gradePoints += (3.7*creditHour);
+                                break;
+                            case "B+":
+                                gradePoints += (3.3*creditHour);
+                                break;
+                            case "B":
+                                gradePoints += (3.0*creditHour);
+                                break;
+                            case "B-":
+                                gradePoints += (2.7*creditHour);
+                                break;
+                            case "C+":
+                                gradePoints += (2.3*creditHour);
+                                break;
+                            case "C":
+                                gradePoints += (2.0*creditHour);
+                                break;
+                            case "C-":
+                                gradePoints += (1.7*creditHour);
+                                break;
+                            case "D+":
+                                gradePoints += (1.3*creditHour);
+                                break;
+                            case "D":
+                                gradePoints += (1.0*creditHour);
+                                break;
+                            case "D-":
+                                gradePoints += (0.7*creditHour);
+                                break;
+                            case "E":
+                                break;
+                        }
+                    }
+                }               
+            }
+            int creditHours = count * creditHour;
+            double GPA = gradePoints / creditHour;
+            var json = new { gpa = GPA };
+            return Json(json);
         }
 
         /*******End code to modify********/
