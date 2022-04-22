@@ -223,7 +223,7 @@ namespace LMS.Controllers
 
             foreach (var x in departments)
             {
-                depts.Add(new SelectListItem { Value = x.Subject, Text = x.Subject + ": " + x.Name });
+                depts.Add(new SelectListItem { Value = x.subject, Text = x.subject + ": " + x.name });
             }
 
             model.Departments = depts;

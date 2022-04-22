@@ -203,41 +203,18 @@ namespace LMS.Controllers
             {
                 if(db.Students.Where(s => s.UId == uid).Any())
                 {
-                    var query = from i in db.Students
-                                where i.UId == uid
-                                select new
-                                {
-                                    fname = i.FName,
-                                    lname = i.LName,
-                                    uid = i.UId,
-                                    department = i.Major
-                                };
-                    return Json(query.ToArray());
+                    Students student = db.Students.Where(s => s.UId == uid).First();
+                    return Json(new { fname = student.FName, lname = student.LName, uid = student.UId, department = student.Major});
                 }
                 if(db.Professors.Where(p => p.UId == uid).Any())
                 {
-                    var query = from i in db.Professors
-                                where i.UId == uid
-                                select new
-                                {
-                                    fname = i.FName,
-                                    lname = i.LName,
-                                    uid = i.UId,
-                                    department = i.WorksIn
-                                };
-                    return Json(query.ToArray());
+                    Professors professor = db.Professors.Where(s => s.UId == uid).First();
+                    return Json(new { fname = professor.FName, lname = professor.LName, uid = professor.UId, department = professor.WorksIn });
                 }
                 if(db.Administrators.Where(a => a.UId == uid).Any())
                 {
-                    var query = from i in db.Administrators
-                                where i.UId == uid
-                                select new
-                                {
-                                    fname = i.FName,
-                                    lname = i.LName,
-                                    uid = i.UId,
-                                };
-                    return Json(query.ToArray());
+                    Administrators admin = db.Administrators.Where(s => s.UId == uid).First();
+                    return Json(new { fname = admin.FName, lname = admin.LName, uid = admin.UId });
                 }
                 else
                 {
