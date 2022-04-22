@@ -108,11 +108,26 @@ namespace LMS.Controllers
         {
             using (db)
             {
-                // course -> class -> assignment Categories -> assignment -> submissions
-                Courses course = db.Courses.Where(c => c.Department == subject && c.Number == num).Include(c => c.Classes).ThenInclude(c => c.AssignmentCategories).First();
-                Classes clss = course.Classes.Where(c => c.Season == season && c.Year == year).First();
-                var acs = clss.AssignmentCategories;
-                return Json(null);
+                // How to pick which submission? displays all submissions for an assignment
+                // How to use uID to get the student correct?
+                // IS this the right way to left join?
+                var query = from i in db.Courses
+                            join c in db.Classes on i.CatalogId equals c.Listing
+                            join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
+                            join a in db.Assignments on ac.CategoryId equals a.Category into bulk
+                            from j in bulk
+                            join s in db.Submissions on j.AssignmentId equals s.Assignment into right
+                            from k in right.DefaultIfEmpty()
+                            where i.Department == subject && i.Number == num && c.Season == season && c.Year == year 
+                            select new
+                            {
+                                aname = j.Name,
+                                cname = ac.Name,
+                                due = j.Due,
+                                score = k == null ? null : (uint?)k.Score
+                            };
+               
+                return Json(query.ToArray());
             }
         }
 
