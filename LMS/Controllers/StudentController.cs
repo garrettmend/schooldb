@@ -156,7 +156,12 @@ namespace LMS.Controllers
             {
                 try
                 {
-                    var course = db.Courses.Where(c => c.Department == subject && c.Number == num).First();
+                    var course = db.Courses.Where(c => c.Department == subject && c.Number == num)
+                        .Include(c => c.Classes)
+                        .ThenInclude(c => c.AssignmentCategories)
+                        .ThenInclude(c => c.Assignments)
+                        .ThenInclude(c => c.Submissions)
+                        .First();
                     var clss = course.Classes.Where(c => c.Season == season && c.Year == year).First();
                     var acategory = clss.AssignmentCategories.Where(a => a.Name == category).First();
                     Assignments assignment = acategory.Assignments.Where(a => a.Name == asgname).First();
