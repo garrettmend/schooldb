@@ -108,11 +108,24 @@ namespace LMS.Controllers
         {
             using (db)
             {
-                // course -> class -> assignment Categories -> assignment -> submissions
-                Courses course = db.Courses.Where(c => c.Department == subject && c.Number == num).Include(c => c.Classes).ThenInclude(c => c.AssignmentCategories).First();
-                Classes clss = course.Classes.Where(c => c.Season == season && c.Year == year).First();
-                var acs = clss.AssignmentCategories;
-                return Json(null);
+                var query = from i in db.Courses
+                            join c in db.Classes on i.CatalogId equals c.Listing
+                            join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
+                            join a in db.Assignments on ac.CategoryId equals a.Category into bulk
+                            from j in bulk
+                            join s in db.Submissions
+                            on new { A = j.AssignmentId, B = uid } equals new { A = s.Assignment, B = s.Student } into joined
+                            from k in joined.DefaultIfEmpty()
+                            where i.Department == subject && i.Number == num && c.Season == season && c.Year == year 
+                            select new
+                            {
+                                aname = j.Name,
+                                cname = ac.Name,
+                                due = j.Due,
+                                score = k == null ? null : (uint?)k.Score
+                            };
+               
+                return Json(query.ToArray());
             }
         }
 
@@ -143,7 +156,12 @@ namespace LMS.Controllers
             {
                 try
                 {
-                    var course = db.Courses.Where(c => c.Department == subject && c.Number == num).First();
+                    var course = db.Courses.Where(c => c.Department == subject && c.Number == num)
+                        .Include(c => c.Classes)
+                        .ThenInclude(c => c.AssignmentCategories)
+                        .ThenInclude(c => c.Assignments)
+                        .ThenInclude(c => c.Submissions)
+                        .First();
                     var clss = course.Classes.Where(c => c.Season == season && c.Year == year).First();
                     var acategory = clss.AssignmentCategories.Where(a => a.Name == category).First();
                     Assignments assignment = acategory.Assignments.Where(a => a.Name == asgname).First();

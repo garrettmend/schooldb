@@ -152,20 +152,35 @@ namespace LMS.Controllers
             if (category != null)
             {
                 using (db) {
-                    var query = from co in db.Courses
+
+                    /*var query = from co in db.Courses
                                 join c in db.Classes on co.CatalogId equals c.Listing
                                 join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
                                 join a in db.Assignments on ac.CategoryId equals a.Category
                                 join s in db.Submissions on a.AssignmentId equals s.Assignment into sub
                                 from x in sub.DefaultIfEmpty()
-                                where co.Number == num && co.Department == subject && ac.Name==category && c.Season == season && c.Year == year
+                                where co.Number == num && co.Department == subject && ac.Name==category && c.Season == season && c.Year == year*/
+
+                    var query = from i in db.Courses 
+                                join c in db.Classes on i.CatalogId equals c.Listing
+                                join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
+                                join a in db.Assignments on ac.CategoryId equals a.Category into bulk
+                                from j in bulk
+                                join s in db.Submissions on j.AssignmentId equals s.Assignment into right
+                                from k in right.DefaultIfEmpty()
+                                where i.Number == num && i.Department == subject && ac.Name==category && c.Season == season && c.Year == year
+
                                 select new
                                 {
-                                    aname = a.Name,
+                                    aname = j.Name,
                                     cname = ac.Name,
-                                    due = a.Due,
-                                    submissions =x==null?0: (uint?)x.Student.Count()
+
+                                    /*due = a.Due,
+                                    submissions =x==null?0: (uint?)x.Student.Count()*/
                                    
+
+                                    due = j.Due,
+                                    submissions = k == null ? 0 : k.Student.Count()                                   
 
                                 };
 
@@ -177,21 +192,36 @@ namespace LMS.Controllers
             {
                 using (db)
                 {
-                    var query = from co in db.Courses
+
+                    /*var query = from co in db.Courses
                                 join c in db.Classes on co.CatalogId equals c.Listing
                                 join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
                                 join a in db.Assignments on ac.CategoryId equals a.Category 
                                 join s in db.Submissions on a.AssignmentId equals s.Assignment into sub
                                 from x in sub.DefaultIfEmpty()
                                 where co.Number == num && co.Department == subject && c.Season == season && c.Year == year
-                                && ac.Name.Any()
+                                && ac.Name.Any()*/
+
+                    var query = from i in db.Courses
+                                join c in db.Classes on i.CatalogId equals c.Listing
+                                join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
+                                join a in db.Assignments on ac.CategoryId equals a.Category into bulk
+                                from j in bulk
+                                join s in db.Submissions on j.AssignmentId equals s.Assignment into right
+                                from k in right.DefaultIfEmpty()
+                                where i.Number == num && i.Department == subject && ac.Name.Any() && c.Season == season && c.Year == year
                                 select new
                                 {
-                                    aname = a.Name,
+                                    aname = j.Name,
                                     cname = ac.Name,
-                                    due = a.Due,
-                                    submissions = x == null ? 0 : (uint?)x.Student.Count()
 
+                                   /* due = a.Due,
+                                    submissions = x == null ? 0 : (uint?)x.Student.Count()*/
+
+
+
+                                    due = j.Due,
+                                    submissions = k == null ? 0 : k.Student.Count()
 
                                 };
 
