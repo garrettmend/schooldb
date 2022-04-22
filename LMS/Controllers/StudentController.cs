@@ -108,16 +108,14 @@ namespace LMS.Controllers
         {
             using (db)
             {
-                // How to pick which submission? displays all submissions for an assignment
-                // How to use uID to get the student correct?
-                // IS this the right way to left join?
                 var query = from i in db.Courses
                             join c in db.Classes on i.CatalogId equals c.Listing
                             join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
                             join a in db.Assignments on ac.CategoryId equals a.Category into bulk
                             from j in bulk
-                            join s in db.Submissions on j.AssignmentId equals s.Assignment into right
-                            from k in right.DefaultIfEmpty()
+                            join s in db.Submissions
+                            on new { A = j.AssignmentId, B = uid } equals new { A = s.Assignment, B = s.Student } into joined
+                            from k in joined.DefaultIfEmpty()
                             where i.Department == subject && i.Number == num && c.Season == season && c.Year == year 
                             select new
                             {
