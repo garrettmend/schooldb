@@ -144,7 +144,11 @@ namespace LMS.Controllers
         {
             using (db)
             {
-                var classes = db.Courses.Where(c => c.Department == subject && c.Number == num).First().Classes;
+                var classes = db.Courses.Where(c => c.Department == subject && c.Number == num)
+                    .Include(c => c.Classes)
+                    .ThenInclude(c => c.AssignmentCategories)
+                    .ThenInclude(c => c.Assignments)
+                    .First().Classes;
                 var assignmentCategories = classes.Where(c => c.Season == season && c.Year == year).First().AssignmentCategories;
                 var assignments = assignmentCategories.Where(a => a.Name == category).First().Assignments;
                 var assignment = assignments.Where(a => a.Name == asgname).First();
@@ -171,12 +175,24 @@ namespace LMS.Controllers
         {
             using (db)
             {
-                var classes = db.Courses.Where(c => c.Department == subject && c.Number == num).First().Classes;
+                var classes = db.Courses.Where(c => c.Department == subject && c.Number == num)
+                    .Include(c => c.Classes)
+                    .ThenInclude(c => c.AssignmentCategories)
+                    .ThenInclude(c => c.Assignments)
+                    .ThenInclude(c => c.Submissions)
+                    .First().Classes;
                 var assignmentCategories = classes.Where(c => c.Season == season && c.Year == year).First().AssignmentCategories;
                 var assignments = assignmentCategories.Where(a => a.Name == category).First().Assignments;
                 var submissions = assignments.Where(a => a.Name == asgname).First().Submissions;
-                var submission = submissions.Where(s => s.Student == uid).First();
-                return Content(submission.SubmissionContents);
+                if (submissions.Any())
+                {
+                    var submission = submissions.Where(s => s.Student == uid).First();
+                    return Content(submission.SubmissionContents);
+                }
+                else
+                {
+                    return Content("");
+                }
             }
         }
 

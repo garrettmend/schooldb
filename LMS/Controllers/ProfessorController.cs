@@ -152,21 +152,20 @@ namespace LMS.Controllers
             if (category != null)
             {
                 using (db) {
-                    var query = from i in db.Submissions // Can't start from submissions, there could be no submission for assignment. Go course -> ... -> submissions
-                                join a in db.Assignments on i.Assignment equals a.AssignmentId
-                                join ac in db.AssignmentCategories on a.Category equals ac.CategoryId
-                                join c in db.Classes on ac.InClass equals c.ClassId
-                              //  where c.Season == season && c.Year == year
-                                join co in db.Courses on c.Listing equals co.CatalogId
-                                where co.Number == num && co.Department == subject && ac.Name==category && c.Season == season && c.Year == year
+                    var query = from i in db.Courses 
+                                join c in db.Classes on i.CatalogId equals c.Listing
+                                join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
+                                join a in db.Assignments on ac.CategoryId equals a.Category into bulk
+                                from j in bulk
+                                join s in db.Submissions on j.AssignmentId equals s.Assignment into right
+                                from k in right.DefaultIfEmpty()
+                                where i.Number == num && i.Department == subject && ac.Name==category && c.Season == season && c.Year == year
                                 select new
                                 {
-                                    aname = a.Name,
+                                    aname = j.Name,
                                     cname = ac.Name,
-                                    due = a.Due,
-                                    submissions = i.Student.Count()
-                                   
-
+                                    due = j.Due,
+                                    submissions = k == null ? 0 : k.Student.Count()                                   
                                 };
                     return Json(query.ToArray());
                 }
@@ -175,23 +174,20 @@ namespace LMS.Controllers
             {
                 using (db)
                 {
-                    var query = from i in db.Submissions
-                                join a in db.Assignments on i.Assignment equals a.AssignmentId
-                                join ac in db.AssignmentCategories on a.Category equals ac.CategoryId
-                                // where ac.Name.Any()
-                                join c in db.Classes on ac.InClass equals c.ClassId
-                               // where c.Season == season && c.Year == year
-                                join co in db.Courses on c.Listing equals co.CatalogId
-                                where co.Number == num && co.Department == subject && c.Season == season && c.Year == year
-                                && ac.Name.Any()
+                    var query = from i in db.Courses
+                                join c in db.Classes on i.CatalogId equals c.Listing
+                                join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
+                                join a in db.Assignments on ac.CategoryId equals a.Category into bulk
+                                from j in bulk
+                                join s in db.Submissions on j.AssignmentId equals s.Assignment into right
+                                from k in right.DefaultIfEmpty()
+                                where i.Number == num && i.Department == subject && ac.Name == category && c.Season == season && c.Year == year
                                 select new
                                 {
-                                    aname = a.Name,
+                                    aname = j.Name,
                                     cname = ac.Name,
-                                    due = a.Due,
-                                    submissions = i.Student.Count()
-
-
+                                    due = j.Due,
+                                    submissions = k == null ? 0 : k.Student.Count()
                                 };
                     return Json(query.ToArray());
                 }
