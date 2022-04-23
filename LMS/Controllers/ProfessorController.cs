@@ -180,7 +180,12 @@ namespace LMS.Controllers
                                    
 
                                     due = j.Due,
-                                    submissions = k == null ? 0 : k.Student.Count()                                   
+                                    submissions = k == null ? 0 : (from i in db.Submissions
+                                                                  
+                                                                   where i.Assignment == j.AssignmentId
+
+                                                                 // && ac.Name == category
+                                                                   select i.Student).Count()                          
 
                                 };
 
@@ -209,23 +214,28 @@ namespace LMS.Controllers
                                 from j in bulk
                                 join s in db.Submissions on j.AssignmentId equals s.Assignment into right
                                 from k in right.DefaultIfEmpty()
-                                where i.Number == num && i.Department == subject && ac.Name.Any() && c.Season == season && c.Year == year
+                                where i.Number == num && i.Department == subject && c.Season == season && c.Year == year
+
                                 select new
                                 {
                                     aname = j.Name,
                                     cname = ac.Name,
 
-                                   /* due = a.Due,
-                                    submissions = x == null ? 0 : (uint?)x.Student.Count()*/
-
+                                    /*due = a.Due,
+                                    submissions =x==null?0: (uint?)x.Student.Count()*/
 
 
                                     due = j.Due,
-                                    submissions = k == null ? 0 : k.Student.Count()
+                                    submissions = k == null ? 0 : (from i in db.Submissions
+
+                                                                   where i.Assignment == j.AssignmentId
+
+                                                                   // && ac.Name == category
+                                                                   select i.Student).Count()
 
                                 };
 
-                        return Json(query.ToArray());
+                    return Json(query.ToArray());
 
 
                 }
@@ -344,6 +354,16 @@ namespace LMS.Controllers
                     };
                     db.Assignments.Add(a);
                     db.SaveChanges();
+                    /*var uids = from c in db.Classes
+                               join co in db.Courses on c.Listing equals co.CatalogId
+                               join e in db.Enrolled on c.ClassId equals e.Class
+                               where co.Department == subject && co.Number == num && c.Season == season && c.Year == year
+                               select e.Student;//get uids of all students in the class 
+                    foreach (string uid in uids)
+                    {
+                       
+                    }*/
+                    this.CalcGrade(subject, num, season, year, null);
                     return Json(new { success = true });
                 }
             }
@@ -460,87 +480,253 @@ namespace LMS.Controllers
         {
             using (db)
             {
-                var categories = from ac in db.AssignmentCategories //gets assignment categories in class
-                                 join c in db.Classes on ac.InClass equals c.ClassId
-                                 join co in db.Courses on c.Listing equals co.CatalogId
-                                 where co.Department == subject && co.Number == num && c.Season == season && c.Year == year && ac.Name.Any()
-                                 select ac;
+                if (uid == null)
+                {
+                    var uids = from c in db.Classes
+                               join co in db.Courses on c.Listing equals co.CatalogId
+                               join e in db.Enrolled on c.ClassId equals e.Class
+                               where co.Department == subject && co.Number == num && c.Season == season && c.Year == year
+                               select e.Student;//get uids of all students in the class 
+                    foreach (string uid2 in uids)
+                    {
 
-                uint scalingFactor = 0;
-                uint totalScore = 0;
+                        var categories = (
+                                 from i in db.Assignments
+                                 join ac in db.AssignmentCategories on i.Category equals ac.CategoryId into asgc
+                                 from x in asgc.DefaultIfEmpty()
+                                 join co in db.Classes on x.InClass equals co.ClassId
+                                 join cour in db.Courses on co.Listing equals cour.CatalogId
+                                 where cour.Department == subject && cour.Number == num && co.Season == season && co.Year == year
+                                 select x).Distinct();
+
+
+                float scalingFactor = 0;
+                float totalScore = 0;
                 foreach (AssignmentCategories asgCat in categories)
                 {
-                    uint maxP = 0;
-                    uint Tscore = 0;
-                    var submissions = from i in db.Submissions //gets students submissions in class in assignment category
-                                      join a in db.Assignments on i.Assignment equals a.AssignmentId
-                                      join ac in db.AssignmentCategories on a.Category equals ac.CategoryId
-                                      join c in db.Classes on ac.InClass equals c.ClassId
-                                      join co in db.Courses on c.Listing equals co.CatalogId
-                                      where co.Department == subject && co.Number == num && c.Season == season && c.Year == year && ac.Name==asgCat.Name
-                                      && a.Name.Any() && i.Student == uid
-                                      select i;
-                    foreach(Submissions s in submissions)
+                    if (asgCat == null)
                     {
-                        Tscore += s.Score; //gets scores of all assignments in category
-                        maxP = s.AssignmentNavigation.MaxPoints;
+                        continue;
                     }
-                    totalScore += (Tscore / maxP)*asgCat.Weight;
+                    float maxP = 0;
+                    float Tscore = 0;
+                    var submissions = 
+                                    from i in db.Courses
+                                    join c in db.Classes on i.CatalogId equals c.Listing
+                                    join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
+                                    join a in db.Assignments on ac.CategoryId equals a.Category into asg
+                                    from y in asg.DefaultIfEmpty()
+                                    join s in db.Submissions on y.AssignmentId equals s.Assignment into sub
+                                    from x in sub.DefaultIfEmpty()
+                                    join e in db.Enrolled on c.ClassId equals e.Class
+                                    where i.Department == subject && i.Number == num && c.Season == season && c.Year == year && ac.Name == asgCat.Name
+                                     && e.Student == uid2 //student's submissions
+                                    select x;
+
+                   foreach (Submissions s in submissions)
+                    {
+                        if (s == null)
+                        {
+                            Tscore += 0;
+                        }
+                        else {
+                            Tscore += (float)s.Score; //gets scores of all assignments in category
+                        }
+
+                    }
+                    var assign = from ac in db.AssignmentCategories //gets assignments in categories in class
+                                 join c in db.Classes on ac.InClass equals c.ClassId into cl
+                                 from z in cl.DefaultIfEmpty()
+                                 join co in db.Courses on z.Listing equals co.CatalogId into cour
+                                 from b in cour.DefaultIfEmpty()
+                                 join a in db.Assignments on ac.CategoryId equals a.Category into asg
+                                 from x in asg.DefaultIfEmpty()
+                                 join s in db.Submissions on x.AssignmentId equals s.Assignment into sub
+                                 from y in sub.DefaultIfEmpty()
+                                 where b.Department == subject && b.Number == num && z.Season == season && z.Year == year && ac.Name==asgCat.Name
+                                 select x;
+                    foreach(Assignments asgn in assign)
+                    {
+                        maxP += (float)asgn.MaxPoints;
+                    }
+                    totalScore += (float)((Tscore / maxP)*asgCat.Weight);
                     scalingFactor+= asgCat.Weight;
                 }
-                uint scalingFactorTotal = 100 / scalingFactor;
-                uint totalPerc = totalScore * scalingFactorTotal;
+                float scalingFactorTotal = 100 / scalingFactor;
+                float totalPerc = totalScore * scalingFactorTotal;
                 string grade="--";
                 switch (totalPerc)
                 {
-                    case uint n when n >=93:
+                    case float n when n >=93:
                         grade = "A";
                         break;
-                    case uint n when n >= 90:
+                    case float n when n >= 90:
                         grade = "A-";
                         break;
-                    case uint n when n >= 87:
+                    case float n when n >= 87:
                         grade = "B+";
                         break;
-                    case uint n when n >= 83:
+                    case float n when n >= 83:
                         grade = "B";
                         break;
-                    case uint n when n >= 80:
+                    case float n when n >= 80:
                         grade = "B-";
                         break;
-                    case uint n when n >= 77:
+                    case float n when n >= 77:
                         grade = "C+";
                         break;
-                    case uint n when n >= 73:
+                    case float n when n >= 73:
                         grade = "C";
                         break;
-                    case uint n when n >= 70:
+                    case float n when n >= 70:
                         grade = "C-";
                         break;
-                    case uint n when n >= 67:
+                    case float n when n >= 67:
                         grade = "D+";
                         break;
-                    case uint n when n >= 63:
+                    case float n when n >= 63:
                         grade = "D";
                         break;
-                    case uint n when n >= 60:
+                    case float n when n >= 60:
                         grade = "D-";
                         break;
-                    case uint n when n < 60:
+                    case float n when n < 60:
                         grade = "E";
                         break;
 
                 }
-                using (db) {
+           
                     var query = from e in db.Enrolled
-                                where e.Student == uid
+                                join c in db.Classes on e.Class equals c.ClassId
+                                join co in db.Courses on c.Listing equals co.CatalogId
+                                where e.Student == uid2 && c.Year==year && c.Season==season && co.Number==num && co.Department==subject
+                                select e;
+                    Enrolled en = query.SingleOrDefault();
+                    en.Grade = grade;
+                    db.SaveChanges();
+                
+
+            }
+                }
+                else
+                {
+                    var categories = (
+                                 from i in db.Assignments
+                                 join ac in db.AssignmentCategories on i.Category equals ac.CategoryId into asgc
+                                 from x in asgc.DefaultIfEmpty()
+                                 join co in db.Classes on x.InClass equals co.ClassId
+                                 join cour in db.Courses on co.Listing equals cour.CatalogId
+                                 where cour.Department == subject && cour.Number == num && co.Season == season && co.Year == year
+                                 select x).Distinct();
+
+
+                    float scalingFactor = 0;
+                    float totalScore = 0;
+                    foreach (AssignmentCategories asgCat in categories)
+                    {
+                        if (asgCat == null)
+                        {
+                            continue;
+                        }
+                        float maxP = 0;
+                        float Tscore = 0;
+                        var submissions =
+                                        from i in db.Courses
+                                        join c in db.Classes on i.CatalogId equals c.Listing
+                                        join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
+                                        join a in db.Assignments on ac.CategoryId equals a.Category into asg
+                                        from y in asg.DefaultIfEmpty()
+                                        join s in db.Submissions on y.AssignmentId equals s.Assignment into sub
+                                        from x in sub.DefaultIfEmpty()
+                                        join e in db.Enrolled on c.ClassId equals e.Class
+                                        where i.Department == subject && i.Number == num && c.Season == season && c.Year == year && ac.Name == asgCat.Name
+                                         && e.Student == uid //student's submissions
+                                    select x;
+
+                        foreach (Submissions s in submissions)
+                        {
+                            if (s == null)
+                            {
+                                Tscore += 0;
+                            }
+                            else
+                            {
+                                Tscore += (float)s.Score; //gets scores of all assignments in category
+                            }
+
+                        }
+                        var assign = from ac in db.AssignmentCategories //gets assignments in categories in class
+                                     join c in db.Classes on ac.InClass equals c.ClassId into cl
+                                     from z in cl.DefaultIfEmpty()
+                                     join co in db.Courses on z.Listing equals co.CatalogId into cour
+                                     from b in cour.DefaultIfEmpty()
+                                     join a in db.Assignments on ac.CategoryId equals a.Category into asg
+                                     from x in asg.DefaultIfEmpty()
+                                     join s in db.Submissions on x.AssignmentId equals s.Assignment into sub
+                                     from y in sub.DefaultIfEmpty()
+                                     where b.Department == subject && b.Number == num && z.Season == season && z.Year == year && ac.Name == asgCat.Name
+                                     select x;
+                        foreach (Assignments asgn in assign)
+                        {
+                            maxP += (float)asgn.MaxPoints;
+                        }
+                        totalScore += (float)((Tscore / maxP) * asgCat.Weight);
+                        scalingFactor += asgCat.Weight;
+                    }
+                    float scalingFactorTotal = 100 / scalingFactor;
+                    float totalPerc = totalScore * scalingFactorTotal;
+                    string grade = "--";
+                    switch (totalPerc)
+                    {
+                        case float n when n >= 93:
+                            grade = "A";
+                            break;
+                        case float n when n >= 90:
+                            grade = "A-";
+                            break;
+                        case float n when n >= 87:
+                            grade = "B+";
+                            break;
+                        case float n when n >= 83:
+                            grade = "B";
+                            break;
+                        case float n when n >= 80:
+                            grade = "B-";
+                            break;
+                        case float n when n >= 77:
+                            grade = "C+";
+                            break;
+                        case float n when n >= 73:
+                            grade = "C";
+                            break;
+                        case float n when n >= 70:
+                            grade = "C-";
+                            break;
+                        case float n when n >= 67:
+                            grade = "D+";
+                            break;
+                        case float n when n >= 63:
+                            grade = "D";
+                            break;
+                        case float n when n >= 60:
+                            grade = "D-";
+                            break;
+                        case float n when n < 60:
+                            grade = "E";
+                            break;
+
+                    }
+
+                    var query = from e in db.Enrolled
+                                join c in db.Classes on e.Class equals c.ClassId
+                                join co in db.Courses on c.Listing equals co.CatalogId
+                                where e.Student == uid && c.Year == year && c.Season == season && co.Number == num && co.Department == subject
                                 select e;
                     Enrolled en = query.SingleOrDefault();
                     en.Grade = grade;
                     db.SaveChanges();
                 }
-               
-            }
+    }
 
             }
 
