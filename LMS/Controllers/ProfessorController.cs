@@ -332,7 +332,9 @@ namespace LMS.Controllers
     {
             using (db)
             {
-                if (db.Assignments.Where(a => a.Name == asgname && a.CategoryNavigation.Name==category).Any())
+                if (db.Assignments.Where(a => a.Name == asgname && a.CategoryNavigation.InClassNavigation.Year==year && a.CategoryNavigation.InClassNavigation.Season==season
+                && a.CategoryNavigation.InClassNavigation.ListingNavigation.Department==subject && a.CategoryNavigation.InClassNavigation.ListingNavigation.Number==num
+                && a.CategoryNavigation.Name == category).Any()) //&& a.CategoryNavigation.Name==category
                 {
                     return Json(new { success = false });
                 }
