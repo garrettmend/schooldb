@@ -152,45 +152,20 @@ namespace LMS.Controllers
             if (category != null)
             {
                 using (db) {
+                    var course = db.Courses.Where(c => c.Department == subject && c.Number == num).FirstOrDefault().CatalogId;
+                    var classId = db.Classes.Where(c => c.Listing == course && c.Season == season && c.Year == year).FirstOrDefault().ClassId;
+                    var q = from i in db.AssignmentCategories
+                            join a in db.Assignments on i.CategoryId equals a.Category
+                            where i.InClass == classId && i.Name == category
+                            select new
+                            {
+                                aname = a.Name,
+                                cname = i.Name,
+                                due = a.Due,
+                                submissions = a.Submissions.Count()
+                            };
 
-                    /*var query = from co in db.Courses
-                                join c in db.Classes on co.CatalogId equals c.Listing
-                                join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
-                                join a in db.Assignments on ac.CategoryId equals a.Category
-                                join s in db.Submissions on a.AssignmentId equals s.Assignment into sub
-                                from x in sub.DefaultIfEmpty()
-                                where co.Number == num && co.Department == subject && ac.Name==category && c.Season == season && c.Year == year*/
-
-                    var query = from i in db.Courses 
-                                join c in db.Classes on i.CatalogId equals c.Listing
-                                join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
-                                join a in db.Assignments on ac.CategoryId equals a.Category into bulk
-                                from j in bulk
-                                join s in db.Submissions on j.AssignmentId equals s.Assignment into right
-                                from k in right.DefaultIfEmpty()
-                                where i.Number == num && i.Department == subject && ac.Name==category && c.Season == season && c.Year == year
-
-                                select new
-                                {
-                                    aname = j.Name,
-                                    cname = ac.Name,
-
-                                    /*due = a.Due,
-                                    submissions =x==null?0: (uint?)x.Student.Count()*/
-                                   
-
-                                    due = j.Due,
-                                    submissions = k == null ? 0 : (from i in db.Submissions
-                                                                  
-                                                                   where i.Assignment == j.AssignmentId
-
-                                                                 // && ac.Name == category
-                                                                   select i.Student).Count()                          
-
-                                };
-
-                        return Json(query.ToArray());
-
+                    return Json(q.ToArray());
                 }
             }
             else
@@ -198,46 +173,20 @@ namespace LMS.Controllers
                 using (db)
                 {
 
-                    /*var query = from co in db.Courses
-                                join c in db.Classes on co.CatalogId equals c.Listing
-                                join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
-                                join a in db.Assignments on ac.CategoryId equals a.Category 
-                                join s in db.Submissions on a.AssignmentId equals s.Assignment into sub
-                                from x in sub.DefaultIfEmpty()
-                                where co.Number == num && co.Department == subject && c.Season == season && c.Year == year
-                                && ac.Name.Any()*/
+                    var course = db.Courses.Where(c => c.Department == subject && c.Number == num).FirstOrDefault().CatalogId;
+                    var classId = db.Classes.Where(c => c.Listing == course && c.Season == season && c.Year == year).FirstOrDefault().ClassId;
+                    var q = from i in db.AssignmentCategories
+                            join a in db.Assignments on i.CategoryId equals a.Category
+                            where i.InClass == classId
+                            select new
+                            {
+                                aname = a.Name,
+                                cname = i.Name,
+                                due = a.Due,
+                                submissions = a.Submissions.Count()
+                            };
 
-                    var query = from i in db.Courses
-                                join c in db.Classes on i.CatalogId equals c.Listing
-                                join ac in db.AssignmentCategories on c.ClassId equals ac.InClass
-                                join a in db.Assignments on ac.CategoryId equals a.Category into bulk
-                                from j in bulk
-                                join s in db.Submissions on j.AssignmentId equals s.Assignment into right
-                                from k in right.DefaultIfEmpty()
-                                where i.Number == num && i.Department == subject && c.Season == season && c.Year == year
-
-                                select new
-                                {
-                                    aname = j.Name,
-                                    cname = ac.Name,
-
-                                    /*due = a.Due,
-                                    submissions =x==null?0: (uint?)x.Student.Count()*/
-
-
-                                    due = j.Due,
-                                    submissions = k == null ? 0 : (from i in db.Submissions
-
-                                                                   where i.Assignment == j.AssignmentId
-
-                                                                   // && ac.Name == category
-                                                                   select i.Student).Count()
-
-                                };
-
-                    return Json(query.ToArray());
-
-
+                    return Json(q.ToArray());
                 }
 
             }

@@ -301,7 +301,7 @@ namespace LMS.Controllers
                 }               
             }
             int creditHours = count * creditHour;
-            double GPA = gradePoints / creditHour;
+            double GPA = gradePoints / creditHours;
             var json = new { gpa = GPA };
             return Json(json);
         }
