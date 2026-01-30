@@ -144,33 +144,53 @@ namespace LMS.Controllers
         {
             using (db)
             {
-                if (db.Classes.Where(c => c.ListingNavigation.Number == number && c.Season == season && c.Year == year).Any())
+                // Resolve course catalog id first
+                var course = db.Courses.Where(course => course.Department == subject && course.Number == number).FirstOrDefault();
+                if (course == null)
+                {
+                    // Course does not exist
+                    return Json(new { success = false });
+                }
+                uint catalogID = course.CatalogId;
+
+                // Check for duplicate offering of the same course in the same semester
+                if (db.Classes.Where(c => c.Listing == catalogID && c.Season == season && c.Year == year).Any())
                 {
                     return Json(new { success = false });
                 }
-                else
+
+                // Check location conflict only for the same semester (season/year)
+                if (db.Classes.Where(c => c.Location == location && c.Season == season && c.Year == (uint)year && (c.StartTime <= end.TimeOfDay) && (c.EndTime >= start.TimeOfDay)).Any())
                 {
-                    if (db.Classes.Where(c => c.Location == location && (c.StartTime <= end.TimeOfDay) && (c.EndTime >= start.TimeOfDay)).Any())
+                    return Json(new { success = false });
+                }
+
+                // Verify instructor exists
+                if (!db.Professors.Any(p => p.UId == instructor))
+                {
+                    return Json(new { success = false });
+                }
+
+                try
+                {
+                    Classes c = new Classes
                     {
-                        return Json(new { success = false });
-                    }
-                    else // Insert new Class
-                    {
-                        uint catalogID = db.Courses.Where(course => course.Department == subject && course.Number == number).First().CatalogId;
-                        Classes c = new Classes
-                        {
-                            Listing = catalogID,
-                            Season = season,
-                            Year = (uint) year,
-                            StartTime = start.TimeOfDay,
-                            EndTime = end.TimeOfDay,
-                            Location = location,
-                            TaughtBy = instructor
-                        };
-                        db.Classes.Add(c);
-                        db.SaveChanges();
-                        return Json(new { success = true });
-                    }
+                        Listing = catalogID,
+                        Season = season,
+                        Year = (uint) year,
+                        StartTime = start.TimeOfDay,
+                        EndTime = end.TimeOfDay,
+                        Location = location,
+                        TaughtBy = instructor
+                    };
+                    db.Classes.Add(c);
+                    db.SaveChanges();
+                    return Json(new { success = true });
+                }
+                catch (Exception)
+                {
+                    // Save failed; return false without exposing details
+                    return Json(new { success = false });
                 }
             }
         }
