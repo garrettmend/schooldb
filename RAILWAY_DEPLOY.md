@@ -6,6 +6,11 @@
 
   `mysql://root:DfGxDgpWqieOMDuizbkDgFDIaHAJycGq@mysql.railway.internal:3306/railway`
 
+- The app no longer requires a local PFX at deploy time. If you do want the app to serve TLS itself, set these environment variables in Railway:
+  - `HTTPS_PFX_PATH` — path to a PFX file inside the container (e.g., `/run/secrets/https.pfx`)
+  - `HTTPS_PFX_PASSWORD` — password for the PFX
+
+  If `HTTPS_PFX_PATH` is absent or the file is missing, the app will only listen on the port Railway provides (Railway performs TLS termination in front of the container).
 - A `docker-compose.yml` is included for local testing; it sets `MYSQL_URL` the same way by default.
 
 Notes:

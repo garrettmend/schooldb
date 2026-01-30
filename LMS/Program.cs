@@ -24,14 +24,31 @@ namespace LMS
             .UseStartup<Startup>()
             .ConfigureKestrel((context, options) =>
            {
-             options.Listen(IPAddress.Any, 80, listenOptions =>
+             // If a certificate PFX is provided via environment, use it for HTTPS.
+             // Otherwise, do not configure TLS (platform like Railway handles TLS termination).
+             var certPath = Environment.GetEnvironmentVariable("HTTPS_PFX_PATH");
+             var certPassword = Environment.GetEnvironmentVariable("HTTPS_PFX_PASSWORD");
+
+             if (!string.IsNullOrEmpty(certPath) && File.Exists(certPath))
              {
-               listenOptions.UseHttps("https.pfx", "pwd");
-             });
-             options.Listen(IPAddress.Any, 443, listenOptions =>
+               // Listen on HTTP (port 80) and HTTPS (port 443) using provided cert
+               options.Listen(IPAddress.Any, 80);
+               options.Listen(IPAddress.Any, 443, listenOptions =>
+               {
+                 listenOptions.UseHttps(certPath, certPassword);
+               });
+             }
+             else
              {
-               listenOptions.UseHttps("https.pfx", "pwd");
-             });
+               // No local certificate found - listen on the port supplied by the environment (Railway sets PORT)
+               var portEnv = Environment.GetEnvironmentVariable("PORT");
+               int port = 80;
+               if (!string.IsNullOrEmpty(portEnv) && int.TryParse(portEnv, out var p))
+               {
+                 port = p;
+               }
+               options.Listen(IPAddress.Any, port);
+             }
            });
 
   }
