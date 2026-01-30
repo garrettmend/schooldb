@@ -29,9 +29,20 @@ namespace LMS
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
+      // Prefer Railway MYSQL_URL env var if present; otherwise fall back to configured connection string
+      string identityConn;
+      var mysqlUrlEnv = Environment.GetEnvironmentVariable("MYSQL_URL");
+      if (!string.IsNullOrEmpty(mysqlUrlEnv))
+      {
+        identityConn = ParseMysqlUrl(mysqlUrlEnv);
+      }
+      else
+      {
+        identityConn = Configuration.GetConnectionString("IdentityConnection");
+      }
 
       services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseMySql(Configuration.GetConnectionString("IdentityConnection")));
+                options.UseMySql(identityConn));
 
       services.AddIdentity<ApplicationUser, IdentityRole>(options =>
       {
@@ -109,6 +120,19 @@ namespace LMS
       {
         roleResult = await RoleManager.CreateAsync(new IdentityRole("Student"));
       }
+    }
+
+    // Helper to convert MYSQL_URL (mysql://user:pass@host:port/db) into a MySQL connection string
+    private string ParseMysqlUrl(string url)
+    {
+      var uri = new Uri(url);
+      var userInfo = uri.UserInfo.Split(':');
+      var user = userInfo[0];
+      var pass = userInfo.Length > 1 ? userInfo[1] : string.Empty;
+      var host = uri.Host;
+      var port = uri.Port;
+      var db = uri.AbsolutePath.TrimStart('/');
+      return $"Server={host};Port={port};User Id={user};Password={pass};Database={db};";
     }
 
   }

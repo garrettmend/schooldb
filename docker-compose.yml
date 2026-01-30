@@ -1,0 +1,12 @@
+version: '3.4'
+services:
+  lms:
+    build:
+      context: ./LMS
+      dockerfile: Dockerfile
+    image: garrettmend/schooldb:local
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - MYSQL_URL=mysql://root:DfGxDgpWqieOMDuizbkDgFDIaHAJycGq@mysql.railway.internal:3306/railway
+    ports:
+      - "5000:80"

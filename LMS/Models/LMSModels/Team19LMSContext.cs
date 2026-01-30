@@ -31,8 +31,28 @@ namespace LMS.Models.LMSModels
             if (!optionsBuilder.IsConfigured)
             {
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
-                optionsBuilder.UseMySql("Server=atr.eng.utah.edu;User Id=u1182994;Password=ArcTrooper5s;Database=Team19LMS");
+                var mysqlUrl = Environment.GetEnvironmentVariable("MYSQL_URL");
+                if (!string.IsNullOrEmpty(mysqlUrl))
+                {
+                    optionsBuilder.UseMySql(ParseMysqlUrl(mysqlUrl));
+                }
+                else
+                {
+                    optionsBuilder.UseMySql("Server=atr.eng.utah.edu;User Id=u1182994;Password=ArcTrooper5s;Database=Team19LMS");
+                }
             }
+        }
+
+        private static string ParseMysqlUrl(string url)
+        {
+            var uri = new Uri(url);
+            var userInfo = uri.UserInfo.Split(':');
+            var user = userInfo[0];
+            var pass = userInfo.Length > 1 ? userInfo[1] : string.Empty;
+            var host = uri.Host;
+            var port = uri.Port;
+            var db = uri.AbsolutePath.TrimStart('/');
+            return $"Server={host};Port={port};User Id={user};Password={pass};Database={db};";
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
