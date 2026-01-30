@@ -11,6 +11,13 @@
   - `HTTPS_PFX_PASSWORD` — password for the PFX
 
   If `HTTPS_PFX_PATH` is absent or the file is missing, the app will only listen on the port Railway provides (Railway performs TLS termination in front of the container).
+
+- Persist Data Protection keys so antiforgery tokens, cookies, and other protected data survive restarts:
+  - Set the env var `DATA_PROTECTION_PATH` to a directory (for example `/var/keys`).
+  - Mount a persistent volume at that path (Railway supports persistent volumes) so keys are shared across restarts and replicas.
+  - Example Docker Compose (local testing) uses `/var/keys` and a named volume `dp_keys`.
+
+- If you want the app to perform HTTPS redirects inside the container, set `ENFORCE_HTTPS=true` in your Railway service; otherwise leave it unset so the app will not attempt to redirect to an HTTPS port it doesn't manage.
 - A `docker-compose.yml` is included for local testing; it sets `MYSQL_URL` the same way by default.
 
 Notes:

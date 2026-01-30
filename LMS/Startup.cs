@@ -14,6 +14,8 @@ using LMS.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.DataProtection;
+using System.IO;
 
 namespace LMS
 {
@@ -43,6 +45,21 @@ namespace LMS
 
       services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseMySql(identityConn));
+
+      // Configure Data Protection key persistence. If DATA_PROTECTION_PATH is set to a directory
+      // (e.g., "/var/keys"), keys will be persisted there so tokens/cookies remain valid across restarts.
+      var dpPath = Environment.GetEnvironmentVariable("DATA_PROTECTION_PATH");
+      if (!string.IsNullOrEmpty(dpPath))
+      {
+        Directory.CreateDirectory(dpPath);
+        services.AddDataProtection()
+                .PersistKeysToFileSystem(new DirectoryInfo(dpPath))
+                .SetApplicationName("LMS");
+      }
+      else
+      {
+        services.AddDataProtection().SetApplicationName("LMS");
+      }
 
       services.AddIdentity<ApplicationUser, IdentityRole>(options =>
       {
@@ -78,7 +95,13 @@ namespace LMS
         app.UseExceptionHandler("/Home/Error");
       }
 
-      app.UseHttpsRedirection();
+      // Only enable HTTPS redirection if explicitly enforced. Railway performs TLS termination for the container
+      // so redirect middleware may not be applicable in Production unless you set ENFORCE_HTTPS=true.
+      var enforceHttps = Environment.GetEnvironmentVariable("ENFORCE_HTTPS");
+      if (!string.IsNullOrEmpty(enforceHttps) && enforceHttps.ToLower() == "true")
+      {
+        app.UseHttpsRedirection();
+      }
 
       app.UseStaticFiles();
 

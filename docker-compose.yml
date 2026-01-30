@@ -8,5 +8,11 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - MYSQL_URL=mysql://root:DfGxDgpWqieOMDuizbkDgFDIaHAJycGq@mysql.railway.internal:3306/railway
+      - DATA_PROTECTION_PATH=/var/keys
+    volumes:
+      - dp_keys:/var/keys
     ports:
       - "5000:80"
+
+volumes:
+  dp_keys:
