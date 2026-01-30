@@ -145,7 +145,7 @@ namespace LMS.Controllers
             using (db)
             {
                 // Resolve course catalog id first
-                var course = db.Courses.Where(course => course.Department == subject && course.Number == number).FirstOrDefault();
+                var course = db.Courses.Where(c => c.Department == subject && c.Number == number).FirstOrDefault();
                 if (course == null)
                 {
                     // Course does not exist
