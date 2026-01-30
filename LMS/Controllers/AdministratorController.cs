@@ -11,6 +11,13 @@ namespace LMS.Controllers
     [Authorize(Roles = "Administrator")]
     public class AdministratorController : CommonController
     {
+        private readonly Microsoft.Extensions.Logging.ILogger<AdministratorController> _logger;
+
+        public AdministratorController(Microsoft.Extensions.Logging.ILogger<AdministratorController> logger)
+        {
+            _logger = logger;
+        }
+
         public IActionResult Index()
         {
             return View();
@@ -148,26 +155,32 @@ namespace LMS.Controllers
                 var course = db.Courses.Where(c => c.Department == subject && c.Number == number).FirstOrDefault();
                 if (course == null)
                 {
-                    // Course does not exist
+                    _logger.LogWarning("CreateClass failed: course not found: {subject} {number}", subject, number);
                     return Json(new { success = false });
                 }
                 uint catalogID = course.CatalogId;
 
                 // Check for duplicate offering of the same course in the same semester
-                if (db.Classes.Where(c => c.Listing == catalogID && c.Season == season && c.Year == year).Any())
+                var duplicate = db.Classes.Where(c => c.Listing == catalogID && c.Season == season && c.Year == year).FirstOrDefault();
+                if (duplicate != null)
                 {
+                    _logger.LogWarning("CreateClass failed: duplicate offering exists for listing {listing} season {season} year {year}", catalogID, season, year);
                     return Json(new { success = false });
                 }
 
                 // Check location conflict only for the same semester (season/year)
-                if (db.Classes.Where(c => c.Location == location && c.Season == season && c.Year == (uint)year && (c.StartTime <= end.TimeOfDay) && (c.EndTime >= start.TimeOfDay)).Any())
+                var conflict = db.Classes.Where(c => c.Location == location && c.Season == season && c.Year == (uint)year && (c.StartTime <= end.TimeOfDay) && (c.EndTime >= start.TimeOfDay)).FirstOrDefault();
+                if (conflict != null)
                 {
+                    _logger.LogWarning("CreateClass failed: location conflict with class id {classId} in {season} {year} at {location}", conflict.ClassId, season, year, location);
                     return Json(new { success = false });
                 }
 
                 // Verify instructor exists
-                if (!db.Professors.Any(p => p.UId == instructor))
+                var prof = db.Professors.FirstOrDefault(p => p.UId == instructor);
+                if (prof == null)
                 {
+                    _logger.LogWarning("CreateClass failed: instructor not found: {instructor}", instructor);
                     return Json(new { success = false });
                 }
 
@@ -185,11 +198,13 @@ namespace LMS.Controllers
                     };
                     db.Classes.Add(c);
                     db.SaveChanges();
+                    _logger.LogInformation("CreateClass succeeded: listing {listing} season {season} year {year} location {location} instructor {inst}", catalogID, season, year, location, instructor);
                     return Json(new { success = true });
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // Save failed; return false without exposing details
+                    // Save failed; log and return false without exposing details
+                    _logger.LogError(ex, "CreateClass failed: exception saving class for listing {listing} season {season} year {year}", catalogID, season, year);
                     return Json(new { success = false });
                 }
             }
